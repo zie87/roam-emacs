@@ -66,7 +66,7 @@
    ("C-c n m" . org-roam-dailies-capture-tomorrow))
   :config
   ;; Ensure subfolders exist (one-time, harmless if already present)
-  (dolist (dir '("concepts" "permanent" "projects" "meta" "daily"))
+  (dolist (dir '("concepts" "permanent" "projects" "meta" "daily" "references"))
     (make-directory (expand-file-name (concat dir "/") org-roam-directory) t))
 
   ;; Capture templates
@@ -100,7 +100,15 @@
          ("M" "Meta (Area Overview)" plain
           "#+title: ${title}\n#+filetags: :moc:\n\n* Overview\n%?\n\n* Index\n| Type      | Link |\n|-----------+------|\n| Concept   |      |\n| Permanent |      |\n\n* Concepts\n- \n\n* Permanents\n- \n\n* Related hubs\n- \n\n* Notes\n- \n"
           :if-new (file+head "meta/%<%Y%m%d%H%M>--${slug}.org" "")
-          :unnarrowed t)))
+          :unnarrowed t)
+
+          ;; literature / reference note, used by citar-org-roam
+          ("r" "Reference (literature note)" plain
+           "* Summary\n\n%?\n\n* Key ideas\n- \n\n* Quotes\n- \n\n* Links\n- \n"
+           :target (file+head
+                    "%(expand-file-name (or citar-org-roam-subdir \"references\") org-roam-directory)/${citar-citekey}.org"
+                    "#+title: ${note-title} (${citar-date})\n#+filetags: :reference:\n#+created: %U\n#+last_modified: %U\n\n")
+           :unnarrowed t)))
 
   ;; Dailies
   (setq org-roam-dailies-capture-templates
@@ -111,3 +119,38 @@
 
   ;; Keep the database synced automatically
   (org-roam-db-autosync-mode 1))
+
+;; ── Bibliography / citations (org-cite + citar) ─────────────
+(use-package citar
+  :ensure nil                         ; installed via Guix
+  :custom
+  (org-cite-global-bibliography '("~/Notes/references/references.bib"))
+  ;; tell org-cite to use citar
+  (org-cite-insert-processor 'citar)
+  (org-cite-follow-processor 'citar)
+  (org-cite-activate-processor 'citar)
+  ;; citar reads the same bibliography list
+  (citar-bibliography org-cite-global-bibliography)
+  :hook
+  ;; completion-at-point for citations in Org
+  (org-mode . citar-capf-setup)
+  :bind
+  ;; shorter key to insert citations (in addition to C-c C-x C-@)
+  (:map org-mode-map
+        ("C-c b" . org-cite-insert)))
+
+;; ── Citar ↔ Org-roam integration ────────────────────────────
+(use-package citar-org-roam
+  :ensure nil
+  :after (citar org-roam)
+  :custom
+  ;; How titles of roam ref-notes appear in the org-roam database
+  (citar-org-roam-note-title-template "${author} - ${title}")
+  ;; Subdirectory under org-roam-directory for literature notes
+  ;; -> ~/Notes/references/
+  (citar-org-roam-subdir "references")
+  ;; Which org-roam capture template to use for new literature notes
+  ;; (we'll define template key \"r\" below)
+  (citar-org-roam-capture-template-key "r")
+  :config
+  (citar-org-roam-mode 1))

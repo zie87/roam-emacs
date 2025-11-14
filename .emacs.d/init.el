@@ -154,3 +154,39 @@
   (citar-org-roam-capture-template-key "r")
   :config
   (citar-org-roam-mode 1))
+
+;;;; ── PDF tools ──────────────────────────────────────────────
+(use-package pdf-tools
+  :ensure nil
+  :magic ("%PDF" . pdf-view-mode)
+  :config
+  ;; Setup pdf-tools; after first install you can also run M-x pdf-tools-install
+  (pdf-tools-install))
+
+;;;; ── Org-noter ──────────────────────────────────────────────
+(use-package org-noter
+  :ensure nil
+  :commands (org-noter)
+  :after (org pdf-tools org-roam)
+  :custom
+  ;; Where org-noter looks for notes when starting from a PDF
+  ;; Adjust if you use another folder for literature notes
+  (org-noter-notes-search-path
+   (list (expand-file-name "references" org-roam-directory)))
+  ;; I’d keep everything in the same frame
+  (org-noter-always-create-frame nil)
+  :config
+  ;; Enable org-roam integration provided by org-noterg
+  (org-noter-enable-org-roam-integration))
+
+;;;; ── Org ↔ pdf-tools integration ───────────────────────────
+;; workaround for Emacs 30 
+(require 'cl-lib)
+(defalias 'find-if 'cl-find-if)
+(defalias 'getf    'cl-getf)
+(defalias 'equalp  'cl-equalp)
+
+(use-package org-pdftools
+  :ensure nil
+  :after (org pdf-tools)
+  :hook (org-mode . org-pdftools-setup-link))

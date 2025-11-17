@@ -70,6 +70,40 @@
 
 ;; Optional but handy: make Org links prefer IDs when available
 (use-package org-id :ensure nil :config (setq org-id-link-to-org-use-id t))
+
+;;;; ── Org-babel: PlantUML ───────────────────────────────────────────────────
+(use-package ob-plantuml
+  :ensure nil           ;; comes with Org / Emacs, Guix provides Org
+  :after org
+  :config
+  ;; Use the 'plantuml' executable from PATH (Guix package)
+  (setq org-plantuml-exec-mode 'plantuml)
+  ;; If you prefer the .jar instead, use:
+  ;; (setq org-plantuml-exec-mode 'jar
+  ;;       org-plantuml-jar-path "/path/to/plantuml.jar")
+    ;; Optional: default header args
+  (setq org-babel-default-header-args:plantuml
+        '((:results . "file")
+          (:exports . "results")
+          (:mkdirp . "yes")))
+  ;; Ensure output directory for :file exists (honors :mkdirp when present)
+  (defun zie/org-babel-plantuml-mkdirp (orig-fun body params)
+    (let* ((file   (cdr (assq :file params)))
+           (dir    (and file (file-name-directory file)))
+           (mkdirp (cdr (assq :mkdirp params))))
+      (when (and dir
+                 (not (string= dir ""))
+                 mkdirp                     ;; any non-nil value
+                 (not (file-exists-p dir)))
+        (make-directory dir t))
+      (funcall orig-fun body params)))
+
+  (advice-add 'org-babel-execute:plantuml :around
+              #'zie/org-babel-plantuml-mkdirp)
+  ;; Enable PlantUML in org-babel
+  (add-to-list 'org-babel-load-languages '(plantuml . t))
+  (org-babel-do-load-languages 'org-babel-load-languages
+                               org-babel-load-languages))
 ;;;; ── Org-roam ──────────────────────────────────────────────────────────────
 (use-package
  org-roam

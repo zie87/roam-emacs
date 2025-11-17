@@ -11,4 +11,5 @@
                            "emacs-pdf-tools" ;on-demand pdf rendering
                            "emacs-org-pdftools" ;support for org links from pdftools buffers
                            "emacs-nov-el" ;major mode for reading EPUB documents
-                           )))
+                           "plantuml"
+                           "graphviz")))
